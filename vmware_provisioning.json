@@ -1,0 +1,443 @@
+{
+  "name": "vmware_provisioning",
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"vmware_token\": \"{{$node['get_vmware_token'].json.value}}\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        740,
+        0
+      ],
+      "id": "548bbb90-7488-492d-ad56-b5af1ed829d0",
+      "name": "vmware_token"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"name\": \"{{$json.vm_name}}\",\n  \"cpu\": \"{{$json.cpu}}\",\n  \"cores_per_socket\": 2,\n  \"memory\": \"{{$json.ram}}\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        260,
+        0
+      ],
+      "id": "d3bb1fb7-d90f-4d89-95b4-7134883caf2f",
+      "name": "vm_config"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://vcenter.com/rest/vcenter/vm?action=clone",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "vmware-api-session-id",
+              "value": "={{ $json.vmware_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"spec\":\n  {\n   \"name\": \"{{$node['vm_config'].json.name}}\",\n   \"source\": \"vm-770522\",\n   \"placement\": {\n     \"cluster\": \"domain-c50626\",\n     \"host\": \"host-770418\"\n   }\n}\n}",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        0
+      ],
+      "id": "48e3a1ee-c997-49bc-8a5d-25f4938411f1",
+      "name": "clone"
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        260,
+        240
+      ],
+      "id": "384b0f60-2451-40b2-84b8-dad7cd6ceedb",
+      "name": "Wait",
+      "webhookId": "98b1e82b-3783-4d8b-a4e2-5d8e4d88ccaf"
+    },
+    {
+      "parameters": {
+        "amount": 20
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        740,
+        240
+      ],
+      "id": "04689b05-4a62-4a8f-9935-0eb7fdb0be58",
+      "name": "Wait1",
+      "webhookId": "bf050f59-ada2-4bf4-8ba5-74f792a85e0a"
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        260,
+        440
+      ],
+      "id": "4c414a8b-c0b3-4542-9db0-808d21d4598d",
+      "name": "Wait2",
+      "webhookId": "50f895a4-6648-4049-883e-ad9179122393"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://vcenter.com/rest/com/vmware/cis/session",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        0
+      ],
+      "id": "3bce74d4-3284-4e07-9bc9-a60d8f0a8f42",
+      "name": "get_vmware_token",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "luDdFkr4QVmyszII",
+          "name": "vmware_creds"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"vm_id\": \"{{$node['clone'].json.value}}\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        500,
+        240
+      ],
+      "id": "0d2e1dea-efc3-4a33-b903-2c8dc0cc15a6",
+      "name": "get_vm_id"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://vcenter.com/rest/vcenter/vm/{{$node['get_vm_id'].json.vm_id}}/hardware/cpu",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "vmware-api-session-id",
+              "value": "={{ $node['vmware_token'].json.vmware_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"spec\":\n  {\n   \"count\": \"{{$node['vm_config'].json.cpu}}\",\n   \"cores_per_socket\": \"{{$node['vm_config'].json.cores_per_socket}}\"\n}\n}",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        240
+      ],
+      "id": "fb7a2976-cdbc-4916-9c3b-4982f05c0691",
+      "name": "cpu_config"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://vcenter.com/rest/vcenter/vm/{{$node['get_vm_id'].json.vm_id}}/hardware/memory",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "vmware-api-session-id",
+              "value": "={{ $node['vmware_token'].json.vmware_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"spec\":\n  {\n  \"size_MiB\": \"{{$node['vm_config'].json.memory}}\"\n}\n}",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        440
+      ],
+      "id": "310d94da-5e95-4933-be87-d70258dac124",
+      "name": "memory_config"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://vcenter.com/rest/vcenter/vm/{{$node['get_vm_id'].json.vm_id}}/power/start",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "vmware-api-session-id",
+              "value": "={{ $node['vmware_token'].json.vmware_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{}",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        440
+      ],
+      "id": "e725f93f-3a0a-4d16-9512-0dc01ba8a234",
+      "name": "power_on"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        740,
+        440
+      ],
+      "id": "86c67b21-3162-4024-af99-17649bc6f99e",
+      "name": "Wait3",
+      "webhookId": "40aa1a03-002c-4943-8634-64c2d56726f8"
+    },
+    {
+      "parameters": {
+        "jsCode": "const vmname = $node['vm_config'].json.name;\nconst message = `${vmname} VM has been deployed successfully`;\n  return[\n    {\n      json:{\n        message\n      }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1180,
+        440
+      ],
+      "id": "bf8023c4-e42b-4da0-a381-14bbdaac857f",
+      "name": "display_message"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        40,
+        0
+      ],
+      "id": "3af47976-95cf-4dd5-80b6-7727877225dc",
+      "name": "When Executed by Another Workflow"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "vmware_token": {
+      "main": [
+        [
+          {
+            "node": "clone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "vm_config": {
+      "main": [
+        [
+          {
+            "node": "get_vmware_token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "clone": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "get_vm_id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "cpu_config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait2": {
+      "main": [
+        [
+          {
+            "node": "memory_config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_vmware_token": {
+      "main": [
+        [
+          {
+            "node": "vmware_token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_vm_id": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cpu_config": {
+      "main": [
+        [
+          {
+            "node": "Wait2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "memory_config": {
+      "main": [
+        [
+          {
+            "node": "Wait3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "power_on": {
+      "main": [
+        [
+          {
+            "node": "display_message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait3": {
+      "main": [
+        [
+          {
+            "node": "power_on",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "vm_config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a68ccfcf-9f68-4a0e-984c-e9f33dc5286e",
+  "meta": {
+    "instanceId": "d43887f5d4c6e777635054d38292487767ceaedd79c4ee8cecdcfe344e292654"
+  },
+  "id": "mN9p2zFyPJrPOnob",
+  "tags": []
+}

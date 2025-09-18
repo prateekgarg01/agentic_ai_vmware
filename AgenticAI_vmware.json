@@ -1,0 +1,241 @@
+{
+  "name": "AgenticAI_vmware",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "0dcb2f28-5c8d-4dcb-aa99-5966d0961c37",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        0
+      ],
+      "id": "d606a2ca-bc1f-424d-8f05-39d06816eeca",
+      "name": "When chat message received",
+      "webhookId": "f39aee29-5ad1-4160-93a8-fbb034a673b7"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a vm provisioning assistant, when use inform to deploy a vm you must ask user to provide vmname, cpu and ram , do not proceed with vm deployment if user didn't provide these details. After that respond only with a json object like :\n\n{\n\"deploy_vm\": true,\n\"vm_name\": \"<vmname>\",\n\"cpu\": <cpu_count>,\n\"ram\": <ram_size>\n}\n\nFor any other conversation respond normally as an agent in plain text without the \"deploy_vm\" field. "
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "bc24f15f-b8a3-41f8-88b5-8adb3d522d7d",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "llama3.1:8b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        400,
+        220
+      ],
+      "id": "3165d15e-a093-491f-9352-864555ad072f",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "SPvpD0XZ8Ma9X7IQ",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawoutput = $json.output;\nlet parsed = {};\n\ntry{\n  parsed = JSON.parse(rawoutput)\n} catch(err){\n  return[\n    {\n      json:{\n        message: rawoutput,\n      }\n}];\n}\n\nif(parsed.deploy_vm === true){\n  return[\n    {\n      json:{\n        deployment: \"yes\",\n        vm_name: parsed.vm_name,\n        cpu: parsed.cpu,\n        ram: parsed.ram*1024\n      }\n    }\n  ];\n}\n\nreturn [];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        0
+      ],
+      "id": "76bfa2b9-4cbb-4406-99f0-e8b517dd8f98",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8470ebe2-c359-4404-b074-336d93094055",
+              "leftValue": "={{ $json.deployment }}",
+              "rightValue": "yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1020,
+        0
+      ],
+      "id": "6fde3094-dfcd-458e-98b8-4266cf3be053",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "mN9p2zFyPJrPOnob",
+          "mode": "list",
+          "cachedResultName": "vmware_provisioning"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1280,
+        -80
+      ],
+      "id": "75f1ab95-a8e8-48b6-99cf-23f4b46a2fd3",
+      "name": "Execute Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n  return[\n    {\n      json:{\n        mesage: $json.message,\n      }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        80
+      ],
+      "id": "6a45c490-286b-434b-be25-694a1d3f8424",
+      "name": "Code1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7237d06d-1c75-4d37-9eca-24f7cf50b04f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d43887f5d4c6e777635054d38292487767ceaedd79c4ee8cecdcfe344e292654"
+  },
+  "id": "eTSUHcJVlPQzaTAS",
+  "tags": []
+}
