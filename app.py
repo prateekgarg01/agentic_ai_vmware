@@ -160,15 +160,20 @@ if user_input:
            if ram > 0:
                st.session_state.vm_details["ram"] = ram
                st.session_state.deployment_step = "confirm"
-               # Get final confirmation using LLM for natural response
-               confirm_prompt = f"User provided all VM details: Name: {st.session_state.vm_details['name']}, CPU: {st.session_state.vm_details['cpu']} cores, RAM: {st.session_state.vm_details['ram']} GB. Ask for confirmation to deploy in a friendly way."
-               confirm_response = ollama_client.chat(
-                   model="llama3.1:8b",
-                   messages=[{"role": "user", "content": confirm_prompt}]
-               )
-               response = confirm_response['message']['content']
-               st.session_state.chat_history.append({"role": "assistant", "content": response})
-               st.chat_message("assistant").write(response)
+              try:
+                 # Get final confirmation using LLM for natural response
+                 confirm_prompt = f"User provided all VM details: Name: {st.session_state.vm_details['name']}, CPU: {st.session_state.vm_details['cpu']} cores, RAM: {st.session_state.vm_details['ram']} GB. Ask for confirmation to deploy in a friendly way."
+                 confirm_response = ollama_client.chat(
+                     model="llama3.1:8b",
+                     messages=[{"role": "user", "content": confirm_prompt}]
+                     )
+                 response = confirm_response['message']['content']
+                 st.session_state.chat_history.append({"role": "assistant", "content": response})
+                 st.chat_message("assistant").write(response)
+               except Exception as e:
+                  response = f"Sorry, I'm having trouble connecting. Error: {str(e)}"
+                  st.session_state.chat_history.append({"role": "assistant", "content": response})
+                  st.chat_message("assistant").write(response)
            else:
                response = "Please enter a valid amount of RAM in GB (e.g., 4, 8, 16):"
                st.session_state.chat_history.append({"role": "assistant", "content": response})
@@ -233,4 +238,5 @@ with st.sidebar:
    2. **Start deployment**: Say "deploy a VM"
    3. **Provide details**: VM name → CPU → RAM
    4. **Confirm**: Say "yes" to deploy
+
    """)
